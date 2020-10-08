@@ -1,0 +1,35 @@
+var config = {
+  span: { label: 'Previous Games', type: 'number', value: '100' },
+  outh: { label: 'Include Hashes', type: 'checkbox', value: false },
+  ocsv: { label: 'Download CSV', type: 'checkbox', value: true}
+};
+Object.entries(config).forEach((c) => window[c[0]] = c[1].value);
+let hashes = new Map(), lastGame = engine.history.first();
+let currentId = lastGame.id, currentHash = lastGame.hash;
+let games = new Array();
+function downloadString(text, fileName) {
+    var blob = new Blob([ text ], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.download = fileName;
+    a.href = URL.createObjectURL(blob);
+    a.dataset.downloadurl = [ 'text/csv', a.download, a.href ].join(':');
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+}
+for(let i = currentId, result, len = currentId - span; i >= len; i--){
+  hashes.set(i, String(currentHash));
+  currentHash = SHA256((currentHash));
+}
+hashes.forEach((hash, id) =>{
+let gameResult = gameResultFromHash(hash);
+  log(`Game: ${id}, Bust: ${gameResult}${outh?', Hash: '+hash:''}`);
+  if(ocsv) games.push(`${id}, ${gameResult}${outh?', '+hash:''}\n`);
+});
+if(ocsv){
+  games.unshift(`id, result${outh?', hash':''}`);
+  downloadString(games.join('\r\n'), 'game_results.csv');
+}
+stop('Finished');
